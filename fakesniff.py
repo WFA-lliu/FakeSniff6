@@ -29,7 +29,17 @@ class FakeSniff():
         self.patt["capi"]["sniffer_control_upload"] = self.__silence
         self.patt["capi"]["sniffer_get_info"] = self.__silence
         self.patt["capi_ret"] = self.__returned_check
+        self.cfg = dict()
+        self.cfg["tmpdir"] = "tmp"
+        self.cfg["dec_idx"] = int(0)
+        self.cfg["reuse"] = True
+        self.cfg["dispose"] = False
+        self.cfg["object_restore"] = None
+        self.cfg["object_invoke"] = None
         self.status = dict()
+        self.reset()
+
+    def reset(self) -> None:
         self.status["silenced"] = True
         self.status["invoked"] = ""
         self.status["returned"] = "status" + self.patt["deli_arg"] + "COMPLETE"
@@ -38,13 +48,6 @@ class FakeSniff():
         self.status["verdict"]["inconsistent"] = int(0)
         self.status["verdict"]["malformed"] = int(0)
         self.status["verdict"]["omitted"] = int(0)
-        self.cfg = dict()
-        self.cfg["tmpdir"] = "tmp"
-        self.cfg["dec_idx"] = int(0)
-        self.cfg["reuse"] = True
-        self.cfg["dispose"] = False
-        self.cfg["object_restore"] = None
-        self.cfg["object_invoke"] = None
 
     def __silence(self, argv: list) -> bool:
         logging.debug("SILENCE: " + argv[0])
@@ -211,7 +214,7 @@ class FakeSniff():
         self.status["verdict"][verdict] += 1
         return True
 
-    def interpret(self, dir: str = "", fn: str = "", suff: str = "", handle: str = "127.0.0.1:9999", handle_restore: str = "127.0.0.1:69", handle_invoke: str = "127.0.0.1:9999") -> bool:
+    def interpret(self, dir: str = "", fn: str = "", suff: str = "", handle: str = "127.0.0.1:9999", handle_restore: str = "127.0.0.1:69", handle_invoke: str = "127.0.0.1:9999") -> tuple:
         path = dir
         if not path.endswith(os.path.sep):
             path += os.path.sep
@@ -280,7 +283,60 @@ class FakeSniff():
                 shutil.rmtree(self.cfg["tmpdir"])
             except Exception as e:
                 logging.exception(e)
-        return ret
+        return (ret, self.status["verdict"])
+
+    @staticmethod
+    def find_interpreting_handle(dir: str = ".") -> tuple:
+        fn: str = ""
+        hdl: str = ""
+        found: bool = False
+        LOG_SUFFIX: str = ".log"
+        items = os.listdir(dir)
+        for item in items:
+            path: str = dir
+            if not path.endswith(os.path.sep):
+                path += os.path.sep
+            path += item
+            logging.debug("path: " + path)
+            if os.path.isfile(path):
+                if path.endswith(LOG_SUFFIX):
+                    with open(path) as file:
+                        for line in file:
+                            VER_INFIX: str = "WiFiTestSuite Version"
+                            ret_patt_ver_search = re.search(VER_INFIX, line)
+                            if ret_patt_ver_search is not None:
+                                found = True
+                                fn = item
+                                break
+                    if found is True:
+                        with open(path) as file:
+                            for line in file:
+                                CAPI_INFIX: str = "sniffer_get_info"
+                                ret_patt_capi_search = re.search(CAPI_INFIX, line)
+                                if ret_patt_capi_search is not None:
+                                    hdl_end = line.find(")")
+                                    hdl_begin = line.find("(")
+                                    hdl = line[hdl_begin+1:hdl_end]
+                                    break
+                    if found is True:
+                        break
+                    fn = ""
+        return (hdl, fn)
+
+    @staticmethod
+    def find_interpreting_directory(dir: str = ".") -> list:
+        folder = list()
+        found: bool = False
+        items = os.listdir(dir)
+        for item in items:
+            path: str = dir
+            if not path.endswith(os.path.sep):
+                path += os.path.sep
+            path += item
+            logging.debug("path: " + path)
+            if os.path.isdir(path):
+                folder.append(path)
+        return folder
 
     @staticmethod
     def is_valid_ip(ip) -> bool:
@@ -294,6 +350,10 @@ if __name__ == "__main__":
         "--verbose",
         action="store_true",
         help="verbosity")
+    my_parser.add_argument("-a",
+        "--auto",
+        action="store_true",
+        help="auto-mode")
     my_parser.add_argument("-d",
         "--directory",
         metavar="directory",
@@ -321,9 +381,15 @@ if __name__ == "__main__":
     my_parser.add_argument("-o",
         "--oriented",
         metavar="oriented",
-        default="192.168.250.66",
+        default="",
         type=str,
         help="oriented IP")
+    my_parser.add_argument("-r",
+        "--report",
+        metavar="report",
+        default="fakesniff6-report.txt",
+        type=str,
+        help="filename of report after interpreted under auto-mode")
 
     args = my_parser.parse_args()
 
@@ -332,14 +398,34 @@ if __name__ == "__main__":
     else:
         logging.basicConfig(level=logging.ERROR)
     logging.debug("args: " + repr(args))
-    handle_restore = None
-    handle_invoke = None
-    if len(args.interpreted.split(":")) >= 2:
-        handle_restore = args.oriented + ":" + str(69)
-        handle_invoke = args.oriented + ":" + args.interpreted.split(":")[1]
-    fs = FakeSniff()
-    ret = fs.interpret(dir = args.directory, fn = args.filename, suff = args.suffix, handle = "192.168.250.96:9999", handle_restore = handle_restore, handle_invoke = handle_invoke)
-    print("state: " + repr(ret) + ";" + "statistics: " + repr(fs.status["verdict"]))
+
+    ret = True
+    if args.auto is True:
+        rpt = open(args.report, "w")
+        fldr = FakeSniff.find_interpreting_directory(args.directory)
+        fs = FakeSniff()
+        for f in fldr:
+            (hdl, filename) = FakeSniff.find_interpreting_handle(f)
+            handle_restore = None
+            handle_invoke = None
+            if len(hdl.split(":")) >= 2:
+                handle_restore = args.oriented + ":" + str(69)
+                handle_invoke = args.oriented + ":" + hdl.split(":")[1]
+            (ret, stat) = fs.interpret(dir = f, fn = filename, suff = args.suffix, handle = hdl, handle_restore = handle_restore, handle_invoke = handle_invoke)
+            print("dir: \"%s\"; fn: \"%s\"; suffix: \"%s\"; state: %s; statistics: %s" % (f, filename, args.suffix, "true" if ret is True else "false", repr(stat)), file = rpt)
+            print("dir: \"%s\"; fn: \"%s\"; suffix: \"%s\"; state: %s; statistics: %s" % (f, filename, args.suffix, "true" if ret is True else "false", repr(stat)))
+            fs.reset()
+        rpt.close()
+    else:
+        handle_restore = None
+        handle_invoke = None
+        if len(args.interpreted.split(":")) >= 2:
+            handle_restore = args.oriented + ":" + str(69)
+            handle_invoke = args.oriented + ":" + args.interpreted.split(":")[1]
+        fs = FakeSniff()
+        (ret, stat) = fs.interpret(dir = args.directory, fn = args.filename, suff = args.suffix, handle = args.interpreted, handle_restore = handle_restore, handle_invoke = handle_invoke)
+        print("state: " + repr(ret) + ";" + "statistics: " + repr(stat))
+
     sys.exit(0 if ret is True else 255)
 
 #FakeSniff6 - by Leo Liu

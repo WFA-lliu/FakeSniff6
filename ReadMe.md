@@ -4,13 +4,14 @@
 ## Usage:
 
 ```sh
-usage: fakesniff.py [-h] [-v] [-d directory] [-f filename] [-s suffix] [-i interpreted] [-o oriented]
+usage: fakesniff.py [-h] [-v] [-a] [-d directory] [-f filename] [-s suffix] [-i interpreted] [-o oriented] [-r report]
 
 CLI argument parsing
 
 optional arguments:
   -h, --help            show this help message and exit
   -v, --verbose         verbosity
+  -a, --auto            auto-mode
   -d directory, --directory directory
                         directory of UCC log and capture
   -f filename, --filename filename
@@ -21,6 +22,8 @@ optional arguments:
                         interpreted handle
   -o oriented, --oriented oriented
                         oriented IP
+  -r report, --report report
+                        filename of report after interpreted under auto-mode
 ```
 
 ## Motivation:
