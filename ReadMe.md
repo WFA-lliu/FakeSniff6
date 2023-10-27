@@ -4,7 +4,7 @@
 ## Usage:
 
 ```sh
-usage: fakesniff.py [-h] [-v] [-a] [-d directory] [-f filename] [-s suffix] [-i interpreted] [-o oriented] [-r report]
+usage: fakesniff.py [-h] [-v] [-a] [-d directory] [-f filename] [-s suffix] [-i interpreted] [-o oriented] [-r report] [-u uploading]
 
 CLI argument parsing
 
@@ -24,26 +24,47 @@ optional arguments:
                         oriented IP
   -r report, --report report
                         filename of report after interpreted under auto-mode
+  -u uploading, --uploading uploading
+                        directory for uploading
 ```
 
-## Motivation:
+## Description:
 
-A utility/tool to validate the revised sniffer-agent by existing logs and captures would be helpful for regression test.
+A utility (tool) to validate the sniffer-agent by existing logs&captures. Test environments are simplified into sniffer-agent and this utility; elapsed time is shortened to the interaction time between sniffer-agent and this utility. This utility is design to be used in preliminary regression-test; this utility is not an alternate of regression-test.
 
-Current drawbacks for validating when the sniffer-agent is revised, either renewal or fixing:
+## Prerequisite:
 
-- Machines are too many. Quality assurance member shall setup the environment for validating; a few machines including UCC core, testbeds, and the sniffer-agent, etc., should be setup accordingly. An environment just includes the revised sniffer-agent would be attractive.
-- Elapsed time is too long. Every test case should be performed completely with testbeds and the revised sniffer-agent, the elapsed time is based on test case requirements and testbed performance. A procedure just includes the dissection of sniffer-agent would be attractive.
+Current captured-file restoring mechanism is TFTP. This utility is built-in a TFTP client. A TFTP server is required to be installed on the sniffer-agent; tftpd-hpa is recommended.
+<details>
+<summary>tftpd-hpa setup</summary>
 
-## Starting point:
+To install tftpd-hpa:
 
-> Read existing UCC log line by line;
+```sh
+sudo apt-get install tftpd-hpa
+```
 
-> send the capture to sniffer-agent when _sniffer_control_start_ CAPI is read, perform dissection on sniffer-agent when _sniffer_control_field_check_ CAPI is read, and so on;
+To modify tftpd-hpa configuration file (/etc/default/tftpd-hpa) as:
 
-> determine whether the returned value of CAPI is the same as UCC log or not.
+```sh
+# /etc/default/tftpd-hpa
 
-## Implementation considerations:
+TFTP_USERNAME="tftp"
+# TFTP_DIRECTORY="/srv/tftp"
+TFTP_DIRECTORY="/WTSSniffer"
+TFTP_ADDRESS=":69"
+# TFTP_OPTIONS="--secure"
+TFTP_OPTIONS="-l -c -s"
 
-- The utility/tool might be running on a different machine of sniffer-agent; e.g. Python.
-- The captured-file restoring mechanism should be trivial; e.g. TFTP.
+#-c: Allow new files to be created
+#-s: Change root directory on startup.
+#-l: Run the server in standalone (listen) mode, rather than run from inetd.
+```
+
+To launch tftpd-hpa:
+
+```sh
+sudo service tftpd-hpa start
+```
+</details>
+
