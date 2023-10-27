@@ -140,9 +140,13 @@ class FakeSniff():
     def __invoke_ul(self, argv: list) -> bool:
         logging.debug("INVOKE_UL: " + argv[0])
         dir_param_key = "destpath"
-        dir_param_idx = [item.lower() for item in argv].index(dir_param_key.lower())
-        dir = argv[dir_param_idx + 1]
-        if self.cfg["uldir"] is not None and os.path.isdir(self.cfg["uldir"]):
+        dir: str = None
+        try:
+            dir_param_idx = [item.lower() for item in argv].index(dir_param_key.lower())
+            dir = argv[dir_param_idx + 1]
+        except ValueError:
+            pass
+        if dir is not None and self.cfg["uldir"] is not None and os.path.isdir(self.cfg["uldir"]):
             path = self.cfg["uldir"]
             if not path.endswith(os.path.sep):
                 path += os.path.sep
@@ -278,7 +282,7 @@ class FakeSniff():
                             else:
                                 break
                     elif ret_patt_rsp_search is not None:
-                        capi_rsp = line[ret_patt_rsp_search.end()+1:].rstrip().split(self.patt["deli_arg"])
+                        capi_rsp = line[ret_patt_rsp_search.end()+1:].lstrip().rstrip().split(self.patt["deli_arg"])
                         #callback
                         ret = self.patt["capi_ret"](capi_rsp)
                         if ret is False:
@@ -387,6 +391,7 @@ if __name__ == "__main__":
         "--suffix",
         metavar="suffix",
         default=".pcapng.gz",
+        choices=[".pcapng.gz", ".tar.gz"],
         type=str,
         help="suffix of capture")
     my_parser.add_argument("-i",
