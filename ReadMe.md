@@ -28,6 +28,30 @@ optional arguments:
                         directory for uploading
 ```
 
+<details>
+<summary><i>fakecall.py</i>, a companion for generic testbed</summary>
+
+```sh
+usage: fakecall.py [-h] [-v] [-d directory] [-f filename] [-i interpreted]
+                   [-o oriented]
+
+CLI argument parsing
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         verbosity
+  -d directory, --directory directory
+                        directory of UCC log and capture
+  -f filename, --filename filename
+                        filename of UCC log
+  -i interpreted, --interpreted interpreted
+                        interpreted handle
+  -o oriented, --oriented oriented
+                        oriented IP
+```
+
+</details>
+
 ## Description:
 
 A utility (tool) to validate the sniffer-agent by existing logs&captures. Test environments are simplified into sniffer-agent and this utility; elapsed time is shortened to the interaction time between sniffer-agent and this utility. This utility is design to be used in preliminary regression-test; this utility is not an alternate of regression-test.

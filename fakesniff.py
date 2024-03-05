@@ -14,9 +14,10 @@ from telnetlib import Telnet
 
 class FakeSniff():
     def __init__(self) -> None:
+        #variables for pattern matching
         self.patt = dict()
         self.patt["deli_req"] = "--->"
-        self.patt["deli_rsp"] = "<--"
+        self.patt["deli_rsp"] = "<--\s+"
         self.patt["deli_arg"] = ","
         self.patt["api_idx"] = int(0)
         self.patt["ret_idx"] = int(1)
@@ -29,14 +30,19 @@ class FakeSniff():
         self.patt["capi"]["sniffer_control_upload"] = self.__silence
         self.patt["capi"]["sniffer_get_info"] = self.__silence
         self.patt["capi_ret"] = self.__returned_check
+        #variables for basic configuration
         self.cfg = dict()
         self.cfg["tmpdir"] = "tmp"
         self.cfg["uldir"] = None
         self.cfg["dec_idx"] = int(0)
         self.cfg["reuse"] = True
+        self.cfg["telnet"] = True
+        self.cfg["tmo_running"] = int(5)
+        self.cfg["tmo_result"] = int(45)
         self.cfg["dispose"] = False
         self.cfg["object_restore"] = None
         self.cfg["object_invoke"] = None
+        #variables for status (temporary) and statistics (finally)
         self.status = dict()
         self.reset()
 
@@ -158,32 +164,36 @@ class FakeSniff():
     def __invoke(self, argv: list) -> bool:
         logging.debug("INVOKE: " + argv[0])
         #last state depends on the CAPI invocation result
-        invoke_running_tmo: int = 5
-        invoke_result_tmo: int = 45
+        invoke_running_tmo: int = self.cfg["tmo_running"]
+        invoke_result_tmo: int = self.cfg["tmo_result"]
         ret: bool = False
-        try:
-            if self.cfg["object_invoke"] is None:
-                self.cfg["object_invoke"] = Telnet()
-                self.cfg["object_invoke"].open(host = self.cfg["handle_invoke"].split(":")[0], port = int(self.cfg["handle_invoke"].split(":")[1]))
-            capi = self.patt["deli_arg"].join(argv) + "\r\n"
-            self.cfg["object_invoke"].write(bytes(capi, "UTF-8"))
-            rcv = self.cfg["object_invoke"].read_until(b"\r\n", invoke_running_tmo)
-            rsp = rcv.decode("UTF-8").rstrip().split(self.patt["deli_arg"])
-            if rsp[0] == "status" and rsp[1] == "RUNNING":
-                #status running shall be hidden
-                rcv = self.cfg["object_invoke"].read_until(b"\r\n", invoke_result_tmo)
+        if self.cfg["telnet"] is True:
+            try:
+                if self.cfg["object_invoke"] is None:
+                    self.cfg["object_invoke"] = Telnet()
+                    self.cfg["object_invoke"].open(host = self.cfg["handle_invoke"].split(":")[0], port = int(self.cfg["handle_invoke"].split(":")[1]))
+                capi = self.patt["deli_arg"].join(argv) + "\r\n"
+                self.cfg["object_invoke"].write(bytes(capi, "UTF-8"))
+                rcv = self.cfg["object_invoke"].read_until(b"\r\n", invoke_running_tmo)
                 rsp = rcv.decode("UTF-8").rstrip().split(self.patt["deli_arg"])
-            if len(rsp) >= 2:
-                self.status["invoked"] = argv[0]
-                self.status["returned"] = rcv.decode("UTF-8").rstrip()
-                self.status["silenced"] = False
+                if rsp[0] == "status" and rsp[1] == "RUNNING":
+                    #status running shall be hidden
+                    rcv = self.cfg["object_invoke"].read_until(b"\r\n", invoke_result_tmo)
+                    rsp = rcv.decode("UTF-8").rstrip().split(self.patt["deli_arg"])
+                if len(rsp) >= 2:
+                    self.status["invoked"] = argv[0]
+                    self.status["returned"] = rcv.decode("UTF-8").rstrip()
+                    self.status["silenced"] = False
+                    ret = True
                 ret = True
-        except Exception as e:
-            logging.exception(e)
-        finally:
-            if self.cfg["reuse"] is False:
-                self.cfg["object_invoke"].close()
-                self.cfg["object_invoke"] = None
+            except Exception as e:
+                logging.exception(e)
+            finally:
+                if self.cfg["reuse"] is False:
+                    self.cfg["object_invoke"].close()
+                    self.cfg["object_invoke"] = None
+        else:
+            pass
         if ret is False:
             logging.error("INVOKE: " + argv[0])
             if self.patt["abort"] is False:
@@ -282,7 +292,7 @@ class FakeSniff():
                             else:
                                 break
                     elif ret_patt_rsp_search is not None:
-                        capi_rsp = line[ret_patt_rsp_search.end()+1:].lstrip().rstrip().split(self.patt["deli_arg"])
+                        capi_rsp = line[ret_patt_rsp_search.end()+0:].lstrip().rstrip().split(self.patt["deli_arg"])
                         #callback
                         ret = self.patt["capi_ret"](capi_rsp)
                         if ret is False:
