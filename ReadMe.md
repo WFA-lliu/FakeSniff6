@@ -32,14 +32,15 @@ optional arguments:
 <summary><i>fakecall.py</i>, a companion for generic testbed</summary>
 
 ```sh
-usage: fakecall.py [-h] [-v] [-d directory] [-f filename] [-i interpreted]
-                   [-o oriented]
+usage: fakecall.py [-h] [-v] [-a] [-n name] [-d directory] [-f filename] [-i interpreted] [-o oriented] [-r report]
 
 CLI argument parsing
 
 optional arguments:
   -h, --help            show this help message and exit
   -v, --verbose         verbosity
+  -a, --auto            auto-mode
+  -n name, --name name  display name for specific handle
   -d directory, --directory directory
                         directory of UCC log and capture
   -f filename, --filename filename
@@ -48,6 +49,8 @@ optional arguments:
                         interpreted handle
   -o oriented, --oriented oriented
                         oriented IP
+  -r report, --report report
+                        filename of report after interpreted under auto-mode
 ```
 
 </details>
