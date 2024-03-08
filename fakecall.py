@@ -4,6 +4,8 @@ import sys
 import argparse
 import logging
 import re
+import time
+from datetime import timedelta
 from fakesniff import FakeSniff 
 
 class FakeCall(FakeSniff):
@@ -32,7 +34,7 @@ class FakeCall(FakeSniff):
         return self._FakeSniff__silence(argv)
 
     def __returned_check(self, argv: list) -> bool:
-        logging.debug("RETURNED CHECK: " + argv[1])
+        logging.debug("RETURNED CHECK: " + ((argv[1] + ".") if len(argv) >= 2 else (repr(argv) + "!")))
         #force last state as fine
         capi_req = self.status["invoked"].split(self.patt["deli_arg"])
         capi_rsp = self.status["returned"].split(self.patt["deli_arg"])
@@ -198,9 +200,12 @@ if __name__ == "__main__":
                         handle_invoke = args.oriented + ":" + h.split(":")[1]
                 logging.info("filename: " + filename)
                 logging.info("h: " + h)
+                time_begin = time.time()
                 (ret, stat) = fc.interpret(dir = f, fn = filename, handle = h, handle_invoke = handle_invoke)
-                print("dir: \"%s\"; fn: \"%s\"; state: %s; statistics: %s" % (f, filename, "true" if ret is True else "false", repr(stat)), file = rpt)
-                print("dir: \"%s\"; fn: \"%s\"; state: %s; statistics: %s" % (f, filename, "true" if ret is True else "false", repr(stat)))
+                time_end = time.time()
+                time_diff = time_end - time_begin
+                print("elapsed: %d; dir: \"%s\"; fn: \"%s\"; state: %s; statistics: %s" % (timedelta(seconds=time_diff).total_seconds(), f, filename, "true" if ret is True else "false", repr(stat)), file = rpt)
+                print("elapsed: %d; dir: \"%s\"; fn: \"%s\"; state: %s; statistics: %s" % (timedelta(seconds=time_diff).total_seconds(), f, filename, "true" if ret is True else "false", repr(stat)))
             fc.reset()
         rpt.close()
     else:
@@ -211,8 +216,11 @@ if __name__ == "__main__":
             else:
                 handle_invoke = args.oriented + ":" + args.interpreted.split(":")[1]
         fc = FakeCall()
+        time_begin = time.time()
         (ret, stat) = fc.interpret(dir = args.directory, fn = args.filename, handle = args.interpreted, handle_invoke = handle_invoke)
-        print("state: " + repr(ret) + ";" + "statistics: " + repr(stat))
+        time_end = time.time()
+        time_diff = time_end - time_begin
+        print("elapsed: " + str(timedelta(seconds=time_diff).total_seconds()) + "; " + " state: " + ("true" if ret is True else "false") + "; " + "statistics: " + repr(stat))
 
     sys.exit(0 if ret is True else 255)
 
