@@ -28,6 +28,8 @@ optional arguments:
                         directory for uploading
 ```
 
+Note: **ptftpd** package should be installed (before running).
+
 <details>
 <summary><i>fakecall.py</i>, a companion for generic testbed</summary>
 
