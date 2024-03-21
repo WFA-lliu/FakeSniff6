@@ -9,9 +9,10 @@ from datetime import timedelta
 from fakesniff import FakeSniff 
 
 class FakeCall(FakeSniff):
-    def __init__(self) -> None:
+    def __init__(self, lf: bool = False) -> None:
         super().__init__()
         #variables for pattern matching
+        self.patt["deli_lf"] = lf
         self.patt["abort"] = True
         self.patt["capi"]["traffic_agent_reset"] = self.__silence
         self.patt["capi"]["traffic_agent_config"] = self.__silence
@@ -23,6 +24,7 @@ class FakeCall(FakeSniff):
         self.patt["capi_ret"] = self.__returned_check
         #variables for basic configuration
         self.cfg["telnet"] = True
+        self.cfg["tmo_running"] = int(30)
         self.cfg["tmo_result"] = int(300)
         #variables for status (temporary) and statistics (finally)
         logging.debug("patt: " + repr(self.patt))
@@ -138,6 +140,16 @@ if __name__ == "__main__":
         "--auto",
         action="store_true",
         help="auto-mode")
+    my_parser.add_argument("-l",
+        "--linefeed",
+        action="store_true",
+        help="LF only mode (instead of both CR and LF)")
+    my_parser.add_argument("-t",
+        "--intermittent",
+        metavar="intermittent",
+        default=0,
+        type=int,
+        help="intermittent time in seconds")
     my_parser.add_argument("-n",
         "--name",
         metavar="name",
@@ -188,7 +200,7 @@ if __name__ == "__main__":
         logging.info("name: " + args.name)
         rpt = open(args.report, "w")
         fldr = FakeSniff.find_interpreting_directory(args.directory)
-        fc = FakeCall()
+        fc = FakeCall(lf = args.linefeed)
         for f in fldr:
             (hdl, filename) = FakeCall.find_interpreting_handle(f, args.name)
             for h in hdl:
@@ -205,7 +217,9 @@ if __name__ == "__main__":
                 time_end = time.time()
                 time_diff = time_end - time_begin
                 print("elapsed: %d; dir: \"%s\"; fn: \"%s\"; state: %s; statistics: %s" % (timedelta(seconds=time_diff).total_seconds(), f, filename, "true" if ret is True else "false", repr(stat)), file = rpt)
-                print("elapsed: %d; dir: \"%s\"; fn: \"%s\"; state: %s; statistics: %s" % (timedelta(seconds=time_diff).total_seconds(), f, filename, "true" if ret is True else "false", repr(stat)))
+                print("elapsed: %d; dir: \"%s\"; fn: \"%s\"; state: %s; statistics: %s" % (timedelta(seconds=time_diff).total_seconds(), f, filename, "true" if ret is True else "false", repr(stat)), flush=True)
+
+                time.sleep(args.intermittent)
             fc.reset()
         rpt.close()
     else:
@@ -215,12 +229,12 @@ if __name__ == "__main__":
                 handle_invoke = args.oriented
             else:
                 handle_invoke = args.oriented + ":" + args.interpreted.split(":")[1]
-        fc = FakeCall()
+        fc = FakeCall(lf = args.linefeed)
         time_begin = time.time()
         (ret, stat) = fc.interpret(dir = args.directory, fn = args.filename, handle = args.interpreted, handle_invoke = handle_invoke)
         time_end = time.time()
         time_diff = time_end - time_begin
-        print("elapsed: " + str(timedelta(seconds=time_diff).total_seconds()) + "; " + " state: " + ("true" if ret is True else "false") + "; " + "statistics: " + repr(stat))
+        print("elapsed: " + str(timedelta(seconds=time_diff).total_seconds()) + "; " + " state: " + ("true" if ret is True else "false") + "; " + "statistics: " + repr(stat), flush=True)
 
     sys.exit(0 if ret is True else 255)
 

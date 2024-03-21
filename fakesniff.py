@@ -19,6 +19,7 @@ class FakeSniff():
         self.patt["deli_req"] = "--->"
         self.patt["deli_rsp"] = "<--\s+"
         self.patt["deli_arg"] = ","
+        self.patt["deli_lf"] = False
         self.patt["api_idx"] = int(0)
         self.patt["ret_idx"] = int(1)
         self.patt["abort"] = True
@@ -172,13 +173,13 @@ class FakeSniff():
                 if self.cfg["object_invoke"] is None:
                     self.cfg["object_invoke"] = Telnet()
                     self.cfg["object_invoke"].open(host = self.cfg["handle_invoke"].split(":")[0], port = int(self.cfg["handle_invoke"].split(":")[1]))
-                capi = self.patt["deli_arg"].join(argv) + "\r\n"
+                capi = self.patt["deli_arg"].join(argv) + ("\r\n" if self.patt["deli_lf"] is False else "\n")
                 self.cfg["object_invoke"].write(bytes(capi, "UTF-8"))
-                rcv = self.cfg["object_invoke"].read_until(b"\r\n", invoke_running_tmo)
+                rcv = self.cfg["object_invoke"].read_until((b"\r\n" if self.patt["deli_lf"] is False else b"\n"), invoke_running_tmo)
                 rsp = rcv.decode("UTF-8").rstrip().split(self.patt["deli_arg"])
-                if rsp[0] == "status" and rsp[1] == "RUNNING":
+                if (rsp[0] == "status") and ("RUNNING" in rsp[1]):
                     #status running shall be hidden
-                    rcv = self.cfg["object_invoke"].read_until(b"\r\n", invoke_result_tmo)
+                    rcv = self.cfg["object_invoke"].read_until((b"\r\n" if self.patt["deli_lf"] is False else b"\n"), invoke_result_tmo)
                     rsp = rcv.decode("UTF-8").rstrip().split(self.patt["deli_arg"])
                 if len(rsp) >= 2:
                     self.status["invoked"] = argv[0]
