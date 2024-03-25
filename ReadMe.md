@@ -34,7 +34,7 @@ Note: **ptftpd** package should be installed (before running).
 <summary><i>fakecall.py</i>, a companion for generic testbed</summary>
 
 ```sh
-usage: fakecall.py [-h] [-v] [-a] [-l] [-t intermittent] [-n name]
+usage: fakecall.py [-h] [-v] [-a] [-l] [-e] [-t intermittent] [-n name]
                    [-d directory] [-f filename] [-i interpreted] [-o oriented]
                    [-r report]
 
@@ -45,6 +45,8 @@ optional arguments:
   -v, --verbose         verbosity
   -a, --auto            auto-mode
   -l, --linefeed        LF only mode (instead of both CR and LF)
+  -e, --exclamation_appended
+                        exclamation appended mode
   -t intermittent, --intermittent intermittent
                         intermittent time in seconds
   -n name, --name name  display name for specific handle

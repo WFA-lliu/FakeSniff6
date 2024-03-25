@@ -9,10 +9,11 @@ from datetime import timedelta
 from fakesniff import FakeSniff 
 
 class FakeCall(FakeSniff):
-    def __init__(self, lf: bool = False) -> None:
+    def __init__(self, lf: bool = False, ea: bool = False) -> None:
         super().__init__()
         #variables for pattern matching
         self.patt["deli_lf"] = lf
+        self.patt["deli_ea"] = ea
         self.patt["abort"] = True
         self.patt["capi"]["traffic_agent_reset"] = self.__silence
         self.patt["capi"]["traffic_agent_config"] = self.__silence
@@ -144,6 +145,10 @@ if __name__ == "__main__":
         "--linefeed",
         action="store_true",
         help="LF only mode (instead of both CR and LF)")
+    my_parser.add_argument("-e",
+        "--exclamation_appended",
+        action="store_true",
+        help="exclamation appended mode")
     my_parser.add_argument("-t",
         "--intermittent",
         metavar="intermittent",
@@ -200,7 +205,7 @@ if __name__ == "__main__":
         logging.info("name: " + args.name)
         rpt = open(args.report, "w")
         fldr = FakeSniff.find_interpreting_directory(args.directory)
-        fc = FakeCall(lf = args.linefeed)
+        fc = FakeCall(lf = args.linefeed, ea = args.exclamation_appended)
         for f in fldr:
             (hdl, filename) = FakeCall.find_interpreting_handle(f, args.name)
             for h in hdl:
@@ -229,7 +234,7 @@ if __name__ == "__main__":
                 handle_invoke = args.oriented
             else:
                 handle_invoke = args.oriented + ":" + args.interpreted.split(":")[1]
-        fc = FakeCall(lf = args.linefeed)
+        fc = FakeCall(lf = args.linefeed, ea = args.exclamation_appended)
         time_begin = time.time()
         (ret, stat) = fc.interpret(dir = args.directory, fn = args.filename, handle = args.interpreted, handle_invoke = handle_invoke)
         time_end = time.time()
