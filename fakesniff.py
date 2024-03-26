@@ -168,6 +168,7 @@ class FakeSniff():
         #last state depends on the CAPI invocation result
         invoke_running_tmo: int = self.cfg["tmo_running"]
         invoke_result_tmo: int = self.cfg["tmo_result"]
+        capi: str = None
         ret: bool = False
         if self.cfg["telnet"] is True:
             try:
@@ -178,13 +179,13 @@ class FakeSniff():
                 self.cfg["object_invoke"].write(bytes(capi, "UTF-8"))
                 rcv = self.cfg["object_invoke"].read_until((b"\r\n" if self.patt["deli_lf"] is False else b"\n"), invoke_running_tmo)
                 if len(rcv) == 0:
-                    raise Exception("Empty")
+                    raise Exception("Empty (synchronous)")
                 rsp = rcv.decode("UTF-8").rstrip().split(self.patt["deli_arg"])
                 if (rsp[0] == "status") and ("RUNNING" in rsp[1]):
                     #status running shall be hidden
                     rcv = self.cfg["object_invoke"].read_until((b"\r\n" if self.patt["deli_lf"] is False else b"\n"), invoke_result_tmo)
                     if len(rcv) == 0:
-                        raise Exception("Empty")
+                        raise Exception("Empty (asynchronous)")
                     rsp = rcv.decode("UTF-8").rstrip().split(self.patt["deli_arg"])
                 if len(rsp) >= 2:
                     self.status["invoked"] = argv[0]
@@ -193,7 +194,8 @@ class FakeSniff():
                     ret = True
                 ret = True
             except Exception as e:
-                logging.exception(e)
+                pass
+                #logging.exception(e)
             finally:
                 if self.cfg["reuse"] is False:
                     self.cfg["object_invoke"].close()
@@ -201,7 +203,9 @@ class FakeSniff():
         else:
             pass
         if ret is False:
-            logging.error("INVOKE: " + argv[0])
+            self.status["invoked"] = capi.strip()
+            self.status["returned"] = "\"\""
+            self.status["silenced"] = False
             if self.patt["abort"] is False:
                 ret = True
             else:

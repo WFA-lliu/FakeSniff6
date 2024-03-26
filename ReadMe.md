@@ -34,9 +34,9 @@ Note: **ptftpd** package should be installed (before running).
 <summary><i>fakecall.py</i>, a companion for generic testbed</summary>
 
 ```sh
-usage: fakecall.py [-h] [-v] [-a] [-l] [-e extra_trailing] [-t intermittent]
-                   [-n name] [-d directory] [-f filename] [-i interpreted]
-                   [-o oriented] [-r report]
+usage: fakecall.py [-h] [-v] [-a] [-b] [-l] [-e extra_trailing]
+                   [-t intermittent] [-n name] [-d directory] [-f filename]
+                   [-i interpreted] [-o oriented] [-r report]
 
 CLI argument parsing
 
@@ -44,6 +44,8 @@ optional arguments:
   -h, --help            show this help message and exit
   -v, --verbose         verbosity
   -a, --auto            auto-mode
+  -b, --abort           abort while exception encountered by default,
+                        specified for persist (not abort)
   -l, --linefeed        LF only mode (instead of both CR and LF)
   -e extra_trailing, --extra_trailing extra_trailing
                         extra trailing string

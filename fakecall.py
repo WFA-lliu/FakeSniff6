@@ -9,12 +9,12 @@ from datetime import timedelta
 from fakesniff import FakeSniff 
 
 class FakeCall(FakeSniff):
-    def __init__(self, lf: bool = False, et: bool = False) -> None:
+    def __init__(self, lf: bool = False, et: bool = False, ab: bool = True) -> None:
         super().__init__()
         #variables for pattern matching
         self.patt["deli_lf"] = lf
         self.patt["deli_et"] = et
-        self.patt["abort"] = True
+        self.patt["abort"] = ab
         self.patt["capi"]["traffic_agent_reset"] = self.__silence
         self.patt["capi"]["traffic_agent_config"] = self.__silence
         self.patt["capi"]["traffic_agent_receive_start"] = self.__silence
@@ -141,6 +141,10 @@ if __name__ == "__main__":
         "--auto",
         action="store_true",
         help="auto-mode")
+    my_parser.add_argument("-b",
+        "--abort",
+        action="store_false",
+        help="abort while exception encountered by default, specified for persist (not abort)")
     my_parser.add_argument("-l",
         "--linefeed",
         action="store_true",
@@ -207,7 +211,7 @@ if __name__ == "__main__":
         logging.info("name: " + args.name)
         rpt = open(args.report, "w")
         fldr = FakeSniff.find_interpreting_directory(args.directory)
-        fc = FakeCall(lf = args.linefeed, et = args.extra_trailing)
+        fc = FakeCall(lf = args.linefeed, et = args.extra_trailing, ab = args.abort)
         for f in fldr:
             (hdl, filename) = FakeCall.find_interpreting_handle(f, args.name)
             for h in hdl:
@@ -236,7 +240,7 @@ if __name__ == "__main__":
                 handle_invoke = args.oriented
             else:
                 handle_invoke = args.oriented + ":" + args.interpreted.split(":")[1]
-        fc = FakeCall(lf = args.linefeed, et = args.extra_trailing)
+        fc = FakeCall(lf = args.linefeed, et = args.extra_trailing, ab = args.abort)
         time_begin = time.time()
         (ret, stat) = fc.interpret(dir = args.directory, fn = args.filename, handle = args.interpreted, handle_invoke = handle_invoke)
         time_end = time.time()
