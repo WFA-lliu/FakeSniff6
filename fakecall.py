@@ -9,7 +9,7 @@ from datetime import timedelta
 from fakesniff import FakeSniff 
 
 class FakeCall(FakeSniff):
-    def __init__(self, lf: bool = False, et: bool = False, ab: bool = True) -> None:
+    def __init__(self, lf: bool = False, et: bool = False, ab: bool = True, ex: int = 0) -> None:
         super().__init__()
         #variables for pattern matching
         self.patt["deli_lf"] = lf
@@ -27,6 +27,7 @@ class FakeCall(FakeSniff):
         self.cfg["telnet"] = True
         self.cfg["tmo_running"] = int(30)
         self.cfg["tmo_result"] = int(300)
+        self.cfg["tmo_exhaustive"] = ex
         #variables for status (temporary) and statistics (finally)
         logging.debug("patt: " + repr(self.patt))
         logging.debug("cfg: " + repr(self.cfg))
@@ -161,6 +162,12 @@ if __name__ == "__main__":
         default=0,
         type=int,
         help="intermittent time in seconds")
+    my_parser.add_argument("-x",
+        "--exhaustive",
+        metavar="exhaustive",
+        default=0,
+        type=int,
+        help="exhaustive time in seconds")
     my_parser.add_argument("-n",
         "--name",
         metavar="name",
@@ -211,7 +218,7 @@ if __name__ == "__main__":
         logging.info("name: " + args.name)
         rpt = open(args.report, "w")
         fldr = FakeSniff.find_interpreting_directory(args.directory)
-        fc = FakeCall(lf = args.linefeed, et = args.extra_trailing, ab = args.abort)
+        fc = FakeCall(lf = args.linefeed, et = args.extra_trailing, ab = args.abort, ex = args.exhaustive)
         for f in fldr:
             (hdl, filename) = FakeCall.find_interpreting_handle(f, args.name)
             for h in hdl:
@@ -240,7 +247,7 @@ if __name__ == "__main__":
                 handle_invoke = args.oriented
             else:
                 handle_invoke = args.oriented + ":" + args.interpreted.split(":")[1]
-        fc = FakeCall(lf = args.linefeed, et = args.extra_trailing, ab = args.abort)
+        fc = FakeCall(lf = args.linefeed, et = args.extra_trailing, ab = args.abort, ex = args.exhaustive)
         time_begin = time.time()
         (ret, stat) = fc.interpret(dir = args.directory, fn = args.filename, handle = args.interpreted, handle_invoke = handle_invoke)
         time_end = time.time()

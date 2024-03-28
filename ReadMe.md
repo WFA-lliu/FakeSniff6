@@ -35,8 +35,8 @@ Note: **ptftpd** package should be installed (before running).
 
 ```sh
 usage: fakecall.py [-h] [-v] [-a] [-b] [-l] [-e extra_trailing]
-                   [-t intermittent] [-n name] [-d directory] [-f filename]
-                   [-i interpreted] [-o oriented] [-r report]
+                   [-t intermittent] [-x exhaustive] [-n name] [-d directory]
+                   [-f filename] [-i interpreted] [-o oriented] [-r report]
 
 CLI argument parsing
 
@@ -51,6 +51,8 @@ optional arguments:
                         extra trailing string
   -t intermittent, --intermittent intermittent
                         intermittent time in seconds
+  -x exhaustive, --exhaustive exhaustive
+                        exhaustive time in seconds
   -n name, --name name  display name for specific handle
   -d directory, --directory directory
                         directory of UCC log and capture

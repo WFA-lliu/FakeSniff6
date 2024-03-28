@@ -41,6 +41,7 @@ class FakeSniff():
         self.cfg["telnet"] = True
         self.cfg["tmo_running"] = int(5)
         self.cfg["tmo_result"] = int(45)
+        self.cfg["tmo_exhaustive"] = int(5)
         self.cfg["dispose"] = False
         self.cfg["object_restore"] = None
         self.cfg["object_invoke"] = None
@@ -168,6 +169,8 @@ class FakeSniff():
         #last state depends on the CAPI invocation result
         invoke_running_tmo: int = self.cfg["tmo_running"]
         invoke_result_tmo: int = self.cfg["tmo_result"]
+        tmo_exhaustive: int = self.cfg["tmo_exhaustive"]
+        argv_shown: int = 3
         capi: str = None
         ret: bool = False
         if self.cfg["telnet"] is True:
@@ -181,17 +184,26 @@ class FakeSniff():
                 if len(rcv) == 0:
                     raise Exception("Empty (synchronous)")
                 rsp = rcv.decode("UTF-8").rstrip().split(self.patt["deli_arg"])
+                logging.debug("rsp (synchronous): " + str(rsp))
                 if (rsp[0] == "status") and ("RUNNING" in rsp[1]):
                     #status running shall be hidden
                     rcv = self.cfg["object_invoke"].read_until((b"\r\n" if self.patt["deli_lf"] is False else b"\n"), invoke_result_tmo)
                     if len(rcv) == 0:
                         raise Exception("Empty (asynchronous)")
                     rsp = rcv.decode("UTF-8").rstrip().split(self.patt["deli_arg"])
+                    logging.debug("rsp (asynchronous): " + str(rsp))
                 if len(rsp) >= 2:
-                    self.status["invoked"] = argv[0]
+                    self.status["invoked"] = self.patt["deli_arg"].join(argv[:argv_shown])
                     self.status["returned"] = rcv.decode("UTF-8").rstrip()
                     self.status["silenced"] = False
                     ret = True
+                if tmo_exhaustive > 0:
+                    rcv = self.cfg["object_invoke"].read_until((b"\r\n" if self.patt["deli_lf"] is False else b"\n"), tmo_exhaustive)
+                    if len(rcv) == 0:
+                        logging.debug("rsp (extra): " + "empty")
+                    else:
+                        rsp = rcv.decode("UTF-8").rstrip().split(self.patt["deli_arg"])
+                        logging.debug("rsp (extra): " + str(rsp))
                 ret = True
             except Exception as e:
                 pass
@@ -203,7 +215,7 @@ class FakeSniff():
         else:
             pass
         if ret is False:
-            self.status["invoked"] = capi.strip()
+            self.status["invoked"] = self.patt["deli_arg"].join(argv[:argv_shown])
             self.status["returned"] = "\"\""
             self.status["silenced"] = False
             if self.patt["abort"] is False:
