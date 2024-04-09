@@ -68,6 +68,32 @@ optional arguments:
 
 </details>
 
+<details>
+<summary><i>fakecount.py</i>, a companion for generic UCC log scanning only; no CAPI invocation</summary>
+
+```sh
+usage: fakecount.py [-h] [-v] [-a] [-n name] [-d directory] [-f filename]
+                    [-s suffix] [-i interpreted]
+
+CLI argument parsing
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         verbosity
+  -a, --auto            auto-mode
+  -n name, --name name  display name for specific handle
+  -d directory, --directory directory
+                        directory of UCC log and capture
+  -f filename, --filename filename
+                        filename of UCC log
+  -s suffix, --suffix suffix
+                        suffix of capture
+  -i interpreted, --interpreted interpreted
+                        interpreted handle
+```
+
+</details>
+
 ## Description:
 
 A utility (tool) to validate the sniffer-agent by existing logs&captures. Test environments are simplified into sniffer-agent and this utility; elapsed time is shortened to the interaction time between sniffer-agent and this utility. This utility is design to be used in preliminary regression-test; this utility is not an alternate of regression-test.
