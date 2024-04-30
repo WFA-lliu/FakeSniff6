@@ -41,7 +41,7 @@ class FakeTrack():
         rpt: dict = dict()
         rpt["PASS"] = raw["PASS"]
         rpt["REMAIN_FAIL"] = diff_f_p
-        rpt["REMAIN_INCOMPLETE"] = diff_f_p
+        rpt["REMAIN_INCOMPLETE"] = diff_i_p_f
         rpt["REMAIN_NOT_TESTED"] = diff_n_i_p_f
         return rpt
 
@@ -57,6 +57,13 @@ if __name__ == "__main__":
         default="/usr/local/bin/WFA-QuickTrack-Tool/Test-Logs",
         type=str,
         help="directory of UCC log and capture")
+    my_parser.add_argument("-y",
+        "--category",
+        metavar="category",
+        default="all",
+        choices=["all", "pass", "remain_fail", "remain_incomplete", "remain_not_tested"],
+        type=str,
+        help="category of report")
 
     args = my_parser.parse_args()
 
@@ -73,9 +80,11 @@ if __name__ == "__main__":
         cnt: int = 0
         for outer in rpt:
             l: list = sorted(rpt[outer])
-            print("category: %s; quantity: %d" % (outer, len(l)))
+            if args.category == "all" or args.category == outer.lower():
+                print("category: %s; quantity: %d" % (outer, len(l)))
             for inner in l:
-                print("%s%s" % ("    ", inner))
+                if args.category == "all" or args.category == outer.lower():
+                    print("%s%s" % ("    ", inner))
                 cnt += 1
         print("total: %d" % (cnt))
         ret = True
