@@ -24,7 +24,12 @@ class FakeTrack():
         ts = ts.replace("_", ":")
         ts = ts.rstrip("Z")
         fmt: str = "%Y-%m-%d %H:%M:%S"
-        return datetime.strptime(ts, fmt)
+        dt: datetime = None
+        try:
+            dt = datetime.strptime(ts, fmt)
+        except:
+            pass
+        return dt
 
     @staticmethod
     def get_ts(dt: datetime = None) -> str:
@@ -57,6 +62,8 @@ class FakeTrack():
                     logging.debug("d: " + os.path.basename(d))
                     patt: list = os.path.basename(d).split(delimiter)
                     name = delimiter.join(patt[2:len(patt)-3])
+                    if len(name) == 0:
+                        continue
                     raw[f].add(name)
                     ts = delimiter.join(patt[len(patt)-3:])
                     dt = FakeTrack.get_dt(ts)
