@@ -5,6 +5,7 @@ import argparse
 import logging
 import re
 import codecs
+import string
 from fakesniff import FakeSniff
 
 class FakeCount(FakeSniff):
@@ -42,7 +43,14 @@ class FakeCount(FakeSniff):
                 if argv[1] == "COMPLETE":
                     if argc >= 4:
                         if argv[2].upper() in map(str.upper, ["CheckResult", "FilterStatus", "Msg", "Upload"]):
-                            if argv[3].upper() in map(str.upper, ["Success"]):
+                            if argv[3].upper() in map(str.upper, ["Success", "UPLOAD-SUCCESS"]):
+                                verdict = "consistent"
+                            else:
+                                verdict = "inconsistent"
+                        elif argv[2].upper() in map(str.upper, ["Result", "ReturnValue"]):
+                            if set(argv[3]).issubset(string.hexdigits):
+                                verdict = "consistent"
+                            elif argv[3].replace(".", "").isnumeric():
                                 verdict = "consistent"
                             else:
                                 verdict = "inconsistent"
