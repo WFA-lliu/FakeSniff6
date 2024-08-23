@@ -147,7 +147,9 @@ if __name__ == "__main__":
         if rpt is not None:
             cnt: int = 0
             for outer in rpt:
-                l: list = sorted(rpt[outer])
+                l: list = list()
+                if rpt[outer] is not None:
+                    l = sorted(rpt[outer])
                 if args.category == "all" or args.category == outer.lower():
                     print("category: %s; quantity: %d" % (outer, len(l)))
                 for inner in l:
