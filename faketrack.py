@@ -8,6 +8,7 @@ import codecs
 import shlex
 import subprocess
 from datetime import datetime
+from enum import Enum
 
 class FakeTrack():
     @staticmethod
@@ -98,6 +99,123 @@ class FakeTrack():
         #aux: latest meta-data for each category
         return (rpt, aux)
 
+    @staticmethod
+    def emit_report(rpt: list = None, category: str = "all") -> bool:
+        if rpt is None:
+            return False
+        cnt: int = 0
+        for outer in rpt:
+            l: list = list()
+            if rpt[outer] is not None:
+                l = sorted(rpt[outer])
+            if category == "all" or category == outer.lower():
+                print("category: %s; quantity: %d" % (outer, len(l)))
+            for inner in l:
+                if category == "all" or category == outer.lower():
+                    print("%s%s" % ("    ", inner))
+                cnt += 1
+        print("total: %d" % (cnt))
+        return True
+
+    @staticmethod
+    def parse_report(lhs: list = None, rhs: list = None) -> dict:
+        logging.debug(repr(lhs))
+        logging.debug(repr(rhs))
+        rpt_lhs: dict = dict()
+        rpt_rhs: dict = dict()
+        if lhs is not None:
+            for l in lhs:
+                logging.debug(l)
+                if os.path.exists(l) is True:
+                    (state, rpt) = FakeTrack.parse_report_idv(l)
+                    if state is True:
+                        for cat in rpt:
+                            if cat not in rpt_lhs:
+                                rpt_lhs[cat] = set()
+                            for c in rpt[cat]:
+                                rpt_lhs[cat].add(c)
+            logging.debug(repr(rpt_lhs))
+        if rhs is not None:
+            for r in rhs:
+                logging.debug(r)
+                if os.path.exists(r) is True:
+                    (state, rpt) = FakeTrack.parse_report_idv(r)
+                    if state is True:
+                        for cat in rpt:
+                            if cat not in rpt_rhs:
+                                rpt_rhs[cat] = set()
+                            for c in rpt[cat]:
+                                rpt_rhs[cat].add(c)
+            logging.debug(repr(rpt_rhs))
+        rpt: dict = dict()
+        for l in rpt_lhs:
+            if l not in rpt:
+                rpt[l] = None
+        for r in rpt_rhs:
+            if r not in rpt:
+                rpt[r] = None
+        for t in rpt:
+            if (t in rpt_lhs) and (t not in rpt_rhs):
+                rpt[t] = rpt_lhs[t]
+            elif (t not in rpt_lhs) and (t in rpt_rhs):
+                rpt[t] = rpt_rhs[t]
+            else:
+                rpt[t] = (rpt_lhs[t] - rpt_rhs[t]) | (rpt_rhs[t] - rpt_lhs[t])
+        return rpt
+
+    @staticmethod
+    def parse_report_idv(idv: str = None) -> tuple:
+        logging.debug(idv)
+        state: FakeTrack.FSM = FakeTrack.FSM.INIT
+        cat_last: str = ""
+        rpt: dict = dict()
+        if os.path.exists(idv) is True:
+            with codecs.open(idv, "r", encoding = "utf-8", errors = "ignore") as f:
+                rpt_tmp: list = None
+                qty_tmp: int = -1
+                for line in f:
+                    logging.debug(state)
+                    if line.find(";") >= 0:
+                        meta = line.split(";")
+                        if len(meta) != 2:
+                            continue
+                        cat = re.findall(r"category: (.*)", meta[0])
+                        if len(cat) <= 0:
+                            continue
+                        qty = re.findall(r"quantity: (.*)", meta[1])
+                        if len(qty) <= 0:
+                            continue
+                        if qty[0].strip().isdigit() is False:
+                            continue
+                        if (state == FakeTrack.FSM.META) or (state == FakeTrack.FSM.CONT):
+                            rpt[cat_last] = rpt_tmp
+                            logging.debug("cat = %s, qty (declared) = %d, qty (actual) = %d; next" % (cat_last, len(rpt_tmp), qty_tmp))
+                        rpt_tmp = list()
+                        qty_tmp = int(qty[0].strip())
+                        cat_last = cat[0]
+                        state = FakeTrack.FSM.META
+                    elif line.find(":") >= 0:
+                        ttl = re.findall(r"total: (.*)", line)
+                        if len(ttl) <= 0:
+                            continue
+                        if ttl[0].strip().isdigit() is False:
+                            continue
+                        if (state == FakeTrack.FSM.META) or (state == FakeTrack.FSM.CONT):
+                            rpt[cat_last] = rpt_tmp
+                            logging.debug("cat = %s, qty (declared) = %d, qty (actual) = %d; finished" % (cat_last, len(rpt_tmp), qty_tmp))
+                        state = FakeTrack.FSM.TERM
+                    else:
+                        if (state == FakeTrack.FSM.META) or (state == FakeTrack.FSM.CONT):
+                            rpt_tmp.append(line.strip())
+                            state = FakeTrack.FSM.CONT
+        return (True, rpt)
+
+    class FSM(Enum):
+        INIT = 0
+        META = 1
+        CONT = 2
+        TERM = 3
+
 if __name__ == "__main__":
     my_parser = argparse.ArgumentParser(description="CLI argument parsing")
     my_parser.add_argument("-v",
@@ -120,9 +238,21 @@ if __name__ == "__main__":
         "--mode",
         metavar="mode",
         default="view",
-        choices=["view", "backup"],
+        choices=["view", "review", "backup"],
         type=str,
         help="mode for test log manipulation")
+    my_parser.add_argument("-l",
+        "--lhs",
+        metavar="lhs",
+        nargs="*",
+        type=str,
+        help="the report file(s) of left-hand side; for review mode")
+    my_parser.add_argument("-r",
+        "--rhs",
+        metavar="rhs",
+        nargs="*",
+        type=str,
+        help="the report file(s) of right-hand side; for review mode")
     my_parser.add_argument("-y",
         "--category",
         metavar="category",
@@ -145,19 +275,10 @@ if __name__ == "__main__":
     ret: bool = False
     if args.mode == "view":
         if rpt is not None:
-            cnt: int = 0
-            for outer in rpt:
-                l: list = list()
-                if rpt[outer] is not None:
-                    l = sorted(rpt[outer])
-                if args.category == "all" or args.category == outer.lower():
-                    print("category: %s; quantity: %d" % (outer, len(l)))
-                for inner in l:
-                    if args.category == "all" or args.category == outer.lower():
-                        print("%s%s" % ("    ", inner))
-                    cnt += 1
-            print("total: %d" % (cnt))
-            ret = True
+            ret = FakeTrack.emit_report(rpt, args.category)
+    elif args.mode == "review":
+        rpt_parsed = FakeTrack.parse_report(args.lhs, args.rhs)
+        ret = FakeTrack.emit_report(rpt_parsed)
     elif args.mode == "backup":
         logging.debug(os.path.abspath(os.getcwd()))
         logging.debug(os.path.abspath(args.persistent))
