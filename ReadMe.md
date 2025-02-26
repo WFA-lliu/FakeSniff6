@@ -94,6 +94,33 @@ optional arguments:
 
 </details>
 
+<details>
+<summary><i>faketrack.py</i>, a statistics utility for QTT logs</summary>
+
+```sh
+usage: faketrack.py [-h] [-v] [-d directory] [-p persistent] [-m mode] [-l [lhs ...]] [-r [rhs ...]] [-y category]
+
+CLI argument parsing
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         verbosity
+  -d directory, --directory directory
+                        directory of QTT Test-Logs
+  -p persistent, --persistent persistent
+                        directory of QTT Test-Logs for persistent
+  -m mode, --mode mode  mode for test log manipulation
+  -l [lhs ...], --lhs [lhs ...]
+                        the report file(s) of left-hand side; for review mode
+  -r [rhs ...], --rhs [rhs ...]
+                        the report file(s) of right-hand side; for review mode
+  -y category, --category category
+                        category of report
+```
+
+</details>
+
+
 ## Description:
 
 A utility (tool) to validate the sniffer-agent by existing logs&captures. Test environments are simplified into sniffer-agent and this utility; elapsed time is shortened to the interaction time between sniffer-agent and this utility. This utility is design to be used in preliminary regression-test; this utility is not an alternate of regression-test.
